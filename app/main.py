@@ -18,6 +18,7 @@ from app.routers.revision_router import router as revision_router
 from app.routers.mission_router import router as mission_router
 from app.routers.buddy_router import router as buddy_router
 from app.routers.insights_router import router as insights_router
+from app.routers.material_router import router as material_router
 
 app = FastAPI(
     title="Talyn AI Learning Coach API",
@@ -47,6 +48,7 @@ app.include_router(revision_router)
 app.include_router(mission_router)
 app.include_router(buddy_router)
 app.include_router(insights_router)
+app.include_router(material_router)
 
 
 @app.get("/health", tags=["Health"])

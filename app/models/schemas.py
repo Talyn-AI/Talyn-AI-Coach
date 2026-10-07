@@ -220,6 +220,38 @@ class QuizRequest(BackendLinkedRequest):
     num_questions: int = Field(default=5, ge=1, le=10)
 
 
+class AnalyzeMaterialRequest(BackendLinkedRequest):
+    document_text: str = Field(..., min_length=100, max_length=150000)
+    filename: str = Field(..., min_length=1, max_length=255)
+
+
+class MaterialAnalysisResponse(BaseModel):
+    topics: list[str]
+    objectives: list[str]
+    estimated_minutes: int
+    summary: str
+
+
+class GenerateScheduleRequest(BackendLinkedRequest):
+    document_text: str = Field(..., min_length=100, max_length=150000)
+    topics: list[str] = Field(default_factory=list, max_length=30)
+    objectives: list[str] = Field(default_factory=list, max_length=30)
+    days: int = Field(default=14, ge=1, le=30)
+    difficulty: str = Field(default="beginner", max_length=20)
+
+
+class ScheduleDayOut(BaseModel):
+    day: int
+    title: str
+    objectives: list[str] = []
+    tasks: list[str] = []
+
+
+class StudyScheduleResponse(BaseModel):
+    title: str
+    days: list[ScheduleDayOut]
+
+
 class EncourageRequest(BackendLinkedRequest):
     trigger: str = Field(
         ...,

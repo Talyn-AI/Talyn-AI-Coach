@@ -545,7 +545,48 @@ def _build_revision(prompt: str, *, update: bool) -> dict:
     return {"summary": summary, "entries": entries}
 
 
+_MATERIAL_ANALYSIS = {
+    "topics": ["Core concepts", "Key terminology", "Applied techniques"],
+    "objectives": [
+        "Explain the core concepts in your own words",
+        "Apply the key techniques to a new example",
+    ],
+    "estimated_minutes": 240,
+    "summary": (
+        "A study document covering core concepts, terminology, and applied "
+        "techniques, suited to a few focused sessions."
+    ),
+}
+
+
+def _build_schedule(prompt: str) -> dict:
+    import re as _re
+
+    match = _re.search(r"Build a (\d+)-day study schedule", prompt)
+    days = max(1, min(int(match.group(1)) if match else 14, 30))
+    out = []
+    for n in range(1, days + 1):
+        if n <= days - 2:
+            title = f"Day {n}: Study block {n}"
+            tasks = [f"Read section {n}", f"Attempt practice set {n}"]
+        elif n == days - 1:
+            title = f"Day {n}: Review"
+            tasks = ["Revisit weak topics", "Redo missed practice"]
+        else:
+            title = f"Day {n}: Self-test"
+            tasks = ["Timed self-test", "Write a one-page recap"]
+        out.append({
+            "day": n,
+            "title": title,
+            "objectives": [f"Complete the day {n} objectives"],
+            "tasks": tasks,
+        })
+    return {"title": "Mock study schedule", "days": out}
+
+
 # ── Marker table (first match wins, most specific first) ─────────────────────
+# Each entry is (marker, payload). A payload may be a dict/list (returned
+# as-is) or a callable taking the prompt (built per request).
 # Each entry is (marker, payload). A payload may be a dict/list (returned
 # as-is) or a callable taking the prompt (built per request).
 
@@ -567,6 +608,8 @@ _PAYLOADS = [
     ("Content type:", _build_personalize),
     ("Generate a 30-day revision schedule", lambda p: _build_revision(p, update=False)),
     ("just completed a revision session", lambda p: _build_revision(p, update=True)),
+    ("Analyze this study document", _MATERIAL_ANALYSIS),
+    ("-day study schedule", _build_schedule),
 ]
 
 _FALLBACK = (
