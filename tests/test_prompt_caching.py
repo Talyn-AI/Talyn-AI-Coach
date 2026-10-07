@@ -72,11 +72,13 @@ def test_cached_prefix_is_byte_identical_across_learners_and_topics():
 
 
 def test_rubric_clears_the_cache_minimum():
-    """Below ~1024 tokens Sonnet silently does not cache: tagging would be
-    decoration. Estimated at ~4 chars per token, with margin."""
+    """Below the minimum Sonnet silently does not cache: tagging would be
+    decoration. The Sonnet 5.5 minimum is 512 tokens; this pins 1024 so the
+    rough chars-per-token estimate has room to be wrong in either direction.
+    Estimated at ~4 chars per token."""
     assert len(QUIZ_RUBRIC) // 4 >= 1024, (
         f"rubric is ~{len(QUIZ_RUBRIC) // 4} tokens: "
-        "below the Sonnet cache minimum, caching would do nothing"
+        "too close to the cache minimum, caching may do nothing"
     )
 
 

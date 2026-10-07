@@ -24,7 +24,7 @@ from app.prompts.coach_prompts import (
 # Initialise client once at import time (reads ANTHROPIC_API_KEY from env)
 _client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", "mock-key"))
 
-MODEL   = "claude-sonnet-4-20250514"
+MODEL   = "claude-sonnet-5-5"
 MAX_TOKENS = 1500
 
 

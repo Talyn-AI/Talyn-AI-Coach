@@ -20,7 +20,7 @@ from app.prompts.revision_prompts import (
 
 _client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", "mock-key"))
 
-MODEL      = "claude-sonnet-4-20250514"
+MODEL      = "claude-sonnet-5-5"
 MAX_TOKENS = 4000
 
 
