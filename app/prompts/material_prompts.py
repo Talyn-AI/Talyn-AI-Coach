@@ -78,15 +78,25 @@ def analyze_material_prompt(document_text: str, filename: str
 
 def generate_schedule_prompt(document_text: str, topics: list[str],
                              objectives: list[str], days: int,
-                             difficulty: str) -> tuple[str, list[dict]]:
-    """Returns (system_prompt, messages) for the paid 14-day schedule."""
+                             difficulty: str, purpose: str = ""
+                             ) -> tuple[str, list[dict]]:
+    """Returns (system_prompt, messages) for the paid day-by-day schedule."""
     topic_lines = "\n".join(f"- {t}" for t in topics) or "- (see document)"
     objective_lines = "\n".join(f"- {o}" for o in objectives) or "- (see document)"
+    goal = (
+        f"The learner's goal for this material: {purpose}. Shape the plan "
+        f"toward it — for an exam, weight likely-tested topics and rehearsal; "
+        f"for an interview, weight applied explanations; for general mastery, "
+        f"weight depth. Name the goal where a day serves it directly."
+        if purpose else
+        "No specific goal was named: plan for durable understanding."
+    )
     messages = [{
         "role": "user",
         "content": (
             f"Build a {days}-day study schedule for a {difficulty}-level "
             f"learner from this document.\n\n"
+            f"{goal}\n\n"
             f"Topics to cover:\n{topic_lines}\n\n"
             f"Learning objectives:\n{objective_lines}\n\n"
             f"--- DOCUMENT START ---\n{document_text}\n--- DOCUMENT END ---"

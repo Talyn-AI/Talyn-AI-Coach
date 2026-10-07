@@ -61,11 +61,11 @@ def analyze_material(document_text: str, filename: str) -> MaterialAnalysisRespo
 
 def generate_schedule(document_text: str, topics: list[str],
                       objectives: list[str], days: int,
-                      difficulty: str) -> StudyScheduleResponse:
+                      difficulty: str, purpose: str = "") -> StudyScheduleResponse:
     """Build the paid day-by-day plan. Raises ValueError when the shape is
     wrong — the backend treats that as a failed generation, not content."""
     system, messages = generate_schedule_prompt(
-        document_text, topics, objectives, days, difficulty
+        document_text, topics, objectives, days, difficulty, purpose
     )
     data = _clean_json(_call_claude(system, messages, SCHEDULE_MAX_TOKENS))
     title = str(data.get("title", "") or "Study schedule")[:255]

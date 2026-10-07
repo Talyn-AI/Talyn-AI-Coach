@@ -65,6 +65,7 @@ async def generate_schedule(body: GenerateScheduleRequest):
             body.objectives,
             body.days,
             body.difficulty,
+            body.purpose,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

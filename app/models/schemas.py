@@ -238,6 +238,7 @@ class GenerateScheduleRequest(BackendLinkedRequest):
     objectives: list[str] = Field(default_factory=list, max_length=30)
     days: int = Field(default=14, ge=1, le=30)
     difficulty: str = Field(default="beginner", max_length=20)
+    purpose: str = Field(default="", max_length=100)
 
 
 class ScheduleDayOut(BaseModel):

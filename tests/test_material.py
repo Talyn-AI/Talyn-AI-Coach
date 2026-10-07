@@ -84,3 +84,37 @@ def test_empty_schedule_payload_is_rejected(monkeypatch):
     )
     with pytest.raises(ValueError):
         ms.generate_schedule(DOC * 4, ["T"], ["O"], 14, "beginner")
+
+
+def test_purpose_shapes_the_prompt():
+    from app.prompts.material_prompts import generate_schedule_prompt
+
+    _, with_goal = generate_schedule_prompt(
+        DOC, ["T"], ["O"], 2, "beginner", "final exam"
+    )
+    _, without_goal = generate_schedule_prompt(
+        DOC, ["T"], ["O"], 2, "beginner", ""
+    )
+    assert "final exam" in with_goal[0]["content"]
+    assert "final exam" not in without_goal[0]["content"]
+    assert "durable understanding" in without_goal[0]["content"]
+
+
+def test_purpose_reaches_generation(monkeypatch):
+    from app.services import material_service as ms
+
+    seen = {}
+
+    def _capture(system, messages, max_tokens):
+        seen["messages"] = messages
+        return (
+            '{"title": "Exam plan", "days": ['
+            '{"day": 1, "title": "D1", "objectives": ["O"], "tasks": ["T"]},'
+            '{"day": 2, "title": "D2", "objectives": ["O"], "tasks": ["T"]}]}'
+        )
+
+    monkeypatch.setattr(ms, "_call_claude", _capture)
+    result = ms.generate_schedule(DOC * 4, ["T"], ["O"], 2, "beginner",
+                                  "entrance exam")
+    assert result.title == "Exam plan"
+    assert len(result.days) == 2
