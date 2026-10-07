@@ -11,6 +11,7 @@ import os
 import anthropic
 from app.models.schemas import (
     LearnerContext, CoachAction, CoachResponse, QuizResponse, QuizQuestion,
+    CourseQaResponse,
 )
 from app.prompts.coach_prompts import (
     answer_question_prompt,
@@ -18,6 +19,7 @@ from app.prompts.coach_prompts import (
     create_study_plan_prompt,
     encourage_prompt,
     generate_quiz_prompt,
+    grounded_qa_prompt,
     QUIZ_RUBRIC,
 )
 
@@ -68,6 +70,16 @@ def answer_question(learner: LearnerContext, question: str) -> CoachResponse:
         learner_id=learner.learner_id,
         response=text,
     )
+
+
+def answer_from_course(learner: LearnerContext, course_title: str,
+                       content: str, question: str) -> CourseQaResponse:
+    """Answer strictly from the supplied lesson text. The content arrives
+    inline because the coach never touches the database."""
+    system, messages = grounded_qa_prompt(learner, course_title, content,
+                                          question)
+    return CourseQaResponse(
+        answer=_call_claude(system, messages, max_tokens=1000))
 
 
 def explain_concept(learner: LearnerContext, concept: str) -> CoachResponse:

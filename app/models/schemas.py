@@ -211,6 +211,16 @@ class AskQuestionRequest(BackendLinkedRequest):
     question: str
 
 
+class CourseQaRequest(BackendLinkedRequest):
+    course_title: str = Field(..., min_length=1, max_length=255)
+    content: str = Field(..., min_length=1, max_length=100000)
+    question: str = Field(..., min_length=1, max_length=2000)
+
+
+class CourseQaResponse(BaseModel):
+    answer: str
+
+
 class StudyPlanRequest(BackendLinkedRequest):
     goals: str = Field(..., description="What the learner wants to achieve")
 

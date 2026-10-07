@@ -135,3 +135,17 @@ def test_generate_quiz(sample_learner):
             marker = "✓" if opt == q.correct_answer else " "
             print(f"  [{marker}] {opt}")
         print(f"  Explanation: {q.explanation}\n")
+
+
+def test_answer_from_course(sample_learner):
+    from app.prompts.coach_prompts import grounded_qa_prompt
+
+    system, messages = grounded_qa_prompt(
+        sample_learner, "CSS Basics", "Flexbox aligns items.", "What aligns?")
+    assert "Answer using ONLY the course content below" in messages[0]["content"]
+    assert "CSS Basics" in messages[0]["content"]
+
+    result = coach_service.answer_from_course(
+        sample_learner, "CSS Basics", "Flexbox aligns items.",
+        "What aligns items?")
+    assert len(result.answer) > 20

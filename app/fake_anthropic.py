@@ -584,6 +584,12 @@ def _build_schedule(prompt: str) -> dict:
     return {"title": "Mock study schedule", "days": out}
 
 
+_COURSE_QA = (
+    "Based on the course content above: the key idea is stated directly in "
+    "the lesson text. Review the cited lesson for the full explanation."
+)
+
+
 # ── Marker table (first match wins, most specific first) ─────────────────────
 # Each entry is (marker, payload). A payload may be a dict/list (returned
 # as-is) or a callable taking the prompt (built per request).
@@ -610,6 +616,7 @@ _PAYLOADS = [
     ("just completed a revision session", lambda p: _build_revision(p, update=True)),
     ("Analyze this study document", _MATERIAL_ANALYSIS),
     ("-day study schedule", _build_schedule),
+    ("Answer using ONLY the course content below", _COURSE_QA),
 ]
 
 _FALLBACK = (

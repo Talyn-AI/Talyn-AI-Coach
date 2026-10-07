@@ -282,6 +282,29 @@ BOUNDARIES
 
 # ── Action Prompts ────────────────────────────────────────────────────────────
 
+def grounded_qa_prompt(learner: LearnerContext, course_title: str,
+                       content: str, question: str) -> tuple[str, list[dict]]:
+    """Returns (system_prompt, messages) for answering from course content.
+
+    Unlike answer_question (which reasons from the learner's profile), this
+    call carries the actual lesson text and must not go beyond it. The
+    content arrives inline because the coach never touches the database.
+    """
+    system = _build_system_prompt(learner)
+    messages = [{
+        "role": "user",
+        "content": (
+            f"Answer using ONLY the course content below. If the content "
+            f"does not contain the answer, say so plainly and suggest which "
+            f"lesson to check — never invent material.\n\n"
+            f"Course: {course_title}\n\n"
+            f"--- COURSE CONTENT START ---\n{content}\n--- COURSE CONTENT END ---\n\n"
+            f"Question: {question}"
+        ),
+    }]
+    return system, messages
+
+
 def answer_question_prompt(learner: LearnerContext, question: str) -> tuple[str, list[dict]]:
     """Returns (system_prompt, messages) for answering a learner question."""
     system = _build_system_prompt(learner)

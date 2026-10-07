@@ -12,7 +12,7 @@ from app.backend_client import BackendError, resolve_learner
 from app.models.schemas import (
     AskQuestionRequest, StudyPlanRequest, QuizRequest,
     EncourageRequest, ExplainConceptRequest,
-    CoachResponse, QuizResponse,
+    CoachResponse, QuizResponse, CourseQaRequest, CourseQaResponse,
 )
 from app.services import coach_service
 
@@ -123,5 +123,27 @@ async def generate_quiz(body: QuizRequest):
         raise HTTPException(status_code=e.status_code, detail=str(e))
     try:
         return coach_service.generate_quiz(learner, body.topic, body.num_questions)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/course-qa",
+    response_model=CourseQaResponse,
+    summary="Answer a question strictly from supplied course content",
+)
+async def course_qa(body: CourseQaRequest):
+    """
+    Grounded Q&A: the backend passes the actual lesson text, and the answer
+    must come from it — never from general knowledge. The backend (not the
+    model) reports which lessons were supplied, so citations stay truthful.
+    """
+    try:
+        learner = resolve_learner(body.learner, body.backend_token)
+    except BackendError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
+    try:
+        return coach_service.answer_from_course(
+            learner, body.course_title, body.content, body.question)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
