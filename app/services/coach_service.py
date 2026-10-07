@@ -18,6 +18,7 @@ from app.prompts.coach_prompts import (
     create_study_plan_prompt,
     encourage_prompt,
     generate_quiz_prompt,
+    QUIZ_RUBRIC,
 )
 
 # Initialise client once at import time (reads ANTHROPIC_API_KEY from env)
@@ -29,12 +30,29 @@ MAX_TOKENS = 1500
 
 # â”€â”€ Internal helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-def _call_claude(system: str, messages: list[dict], max_tokens: int = MAX_TOKENS) -> str:
-    """Make a synchronous call to Claude and return the text response."""
+def _call_claude(system: str, messages: list[dict], max_tokens: int = MAX_TOKENS,
+                cached_blocks: list[str] | None = None) -> str:
+    """Make a synchronous call to Claude and return the text response.
+
+    `cached_blocks` are stable instruction blocks (identical on every call)
+    sent ahead of `system` with a cache breakpoint. Repeat reads of a cached
+    prefix are billed at the cache-read rate instead of the full input rate,
+    but only when the prefix is long enough (about 1024 tokens on Sonnet)
+    and byte-identical — per-learner text must never go in one. When empty,
+    the call is byte-for-byte what it was before caching existed.
+    """
+    if cached_blocks:
+        system_param: str | list[dict] = [
+            {"type": "text", "text": block,
+             "cache_control": {"type": "ephemeral"}}
+            for block in cached_blocks
+        ] + [{"type": "text", "text": system}]
+    else:
+        system_param = system
     response = _client.messages.create(
         model=MODEL,
         max_tokens=max_tokens,
-        system=system,
+        system=system_param,
         messages=messages,
     )
     return response.content[0].text
@@ -84,7 +102,8 @@ def encourage(learner: LearnerContext, trigger: str) -> CoachResponse:
 
 def generate_quiz(learner: LearnerContext, topic: str, num_questions: int) -> QuizResponse:
     system, messages = generate_quiz_prompt(learner, topic, num_questions)
-    raw = _call_claude(system, messages, max_tokens=2000)
+    raw = _call_claude(system, messages, max_tokens=2000,
+                       cached_blocks=[QUIZ_RUBRIC])
 
     # Strip markdown fences if Claude wraps the JSON despite instructions
     clean = raw.strip()

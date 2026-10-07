@@ -589,8 +589,16 @@ class FakeAnthropic:
         last_user = user_msgs[-1] if user_msgs else ""
         # Markers live in the user message, but the learner profile (interests,
         # level, completed courses) is in the system prompt. Builders need
-        # both, so hand them one string with the system prompt first.
+        # both, so hand them one string with the system prompt first. System
+        # may be a plain string or a list of content blocks (used when a
+        # cached prefix is present) — flatten either way so mock behaviour
+        # does not depend on the wire shape.
         system = kwargs.get("system") or ""
+        if isinstance(system, list):
+            system = "\n".join(
+                block.get("text", "") if isinstance(block, dict) else str(block)
+                for block in system
+            )
         full_prompt = f"{system}\n{last_user}" if isinstance(system, str) else last_user
 
         for marker, payload in _PAYLOADS:

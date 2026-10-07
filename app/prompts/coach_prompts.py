@@ -122,6 +122,118 @@ Streak:           {learner.streak_days} day(s)
 """.strip()
 
 
+# ── Quiz authoring guide (cached) ──────────────────────────────────────────
+#
+# Static by construction: a plain constant with no interpolation, shared
+# verbatim by every quiz call for every learner. That stasis is what makes
+# it cacheable — Anthropic only reuses a prefix that is byte-identical
+# across requests (and at least ~1024 tokens on Sonnet, which this clears).
+# tests/test_prompt_caching.py pins both properties: shrink it below the
+# minimum or interpolate a name into it and the suite fails.
+#
+# It lives here rather than beside the caller so the contract is visible
+# where the quiz prompt is built: the rubric is the stable half of the
+# request, the learner profile and topic are the variable half.
+
+QUIZ_RUBRIC = """QUIZ AUTHORING GUIDE
+You write multiple-choice quizzes that diagnose what a learner actually
+knows. This guide is identical on every quiz request in this deployment —
+it never changes between learners, topics, or difficulty levels.
+
+1. SCOPE
+- Test only the topic named in the request. No neighbouring topics, no
+  prerequisites beyond what the difficulty level implies, no trivia.
+- Each question targets exactly one fact, distinction, or procedure. If a
+  draft tests two things, split it into two questions.
+
+2. STEMS (the question text)
+- One unambiguous reading. A learner who knows the material never wonders
+  what is being asked.
+- No trick wording, no double negatives, no "which of the following is
+  NOT ..." inversions.
+- Calibrate to the difficulty level named in the request, not to the
+  topic's hardest corner. Beginner stems ask recall or direct application
+  ("Which property ...?", "What happens when ...?").
+- Never reveal the answer inside the stem.
+
+3. OPTIONS AND DISTRACTORS
+- Exactly four options, labelled "A. ...", "B. ...", "C. ..." and "D. ...".
+- Exactly one correct answer. "All of the above" and "none of the above"
+  are never the correct answer; avoid them entirely when you can.
+- Wrong options must be plausible: real misconceptions, near-miss values,
+  or commonly confused neighbours of the right answer — never jokes, never
+  obviously absurd fillers.
+- Parallel form: all options similar in length, grammar, and specificity.
+  A longer, more precise option leaks the answer.
+- Mutually exclusive: no two options can both be defended as correct.
+
+4. PRIOR PERFORMANCE
+- If the request mentions earlier attempts on this topic, weight questions
+  toward the weak areas it names instead of re-testing what already passed.
+
+5. EXPLANATIONS
+- One or two sentences: why the correct option is right, plus why the most
+  tempting wrong option fails.
+- Teach, don't just judge — the learner reads this after answering.
+
+6. ANSWER BALANCE
+- Across the quiz, spread the correct answers over the four positions. No
+  position holds more than half the answers, and the same position is never
+  correct three questions in a row. Models drift toward B and C; check the
+  key before responding.
+- Vary which misconception the distractors target from question to
+  question, so a learner cannot pass by eliminating one familiar wrong idea.
+
+7. LEVEL CALIBRATION
+- beginner: recall, identify, single-step application. ("Which property
+  ...?", "What happens when ...?", "Which of these is an example of ...?")
+- intermediate: compare two approaches, apply to a new scenario, predict
+  an outcome. ("Which approach fits ... and why?", "What breaks if ...?")
+- advanced: diagnose flawed reasoning, weigh trade-offs, handle edge
+  cases. ("Which of these solutions fails when ...?", "What is the flaw
+  in this reasoning?")
+- The request names the level. When in doubt between two levels, choose
+  the easier question: a quiz that teaches beats a quiz that filters.
+
+8. RESPONSE FORMAT
+- Return ONLY valid JSON. No markdown fences, no preamble, no commentary.
+- Shape:
+{
+  "questions": [
+    {
+      "question": "...",
+      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+      "correct_answer": "A. ...",
+      "explanation": "..."
+    }
+  ]
+}
+- "correct_answer" repeats the full option text, not the bare letter.
+- Exactly the requested number of questions.
+
+9. WORKED EXAMPLE (a question that follows every rule above)
+Topic: CSS Flexbox, beginner.
+{
+  "question": "Which declaration centres a flex item horizontally inside a flex container with row direction?",
+  "options": ["A. justify-content: center;", "B. align-items: center;", "C. text-align: center;", "D. flex-direction: center;"],
+  "correct_answer": "A. justify-content: center;",
+  "explanation": "In a row-direction container the main axis runs horizontally, so justify-content centres along it. align-items centres on the cross (vertical) axis instead, which is the classic mix-up."
+}
+
+10. ANTI-EXAMPLE (the same topic done wrong — never write questions like this)
+{
+  "question": "Which of the following is NOT not unrelated to Flexbox?",
+  "options": ["A. justify-content: center with extra precise wording that makes this option visibly longer than the others", "B. stuff", "C. All of the above", "D. flexbox"],
+  "correct_answer": "C. All of the above",
+  "explanation": "Because it is right."
+}
+Violations: double negative in the stem (rule 2); option A leaks through
+length and precision (rule 3); option B is an absurd filler (rule 3);
+"All of the above" as the answer (rule 3); the explanation judges without
+teaching (rule 5).
+"""
+
+
 def _build_system_prompt(learner: LearnerContext) -> str:
     """
     Core identity and behavioral rules for the Talyn AI Learning Coach.
@@ -300,19 +412,7 @@ def generate_quiz_prompt(learner: LearnerContext, topic: str, num_questions: int
         "content": (
             f"Generate a {num_questions}-question multiple choice quiz on '{topic}' "
             f"for a {learner.difficulty_level.value}-level learner.\n\n"
-            f"{prior_context}\n\n"
-            f"Return ONLY valid JSON. No markdown, no explanation, no preamble.\n\n"
-            f"Format:\n"
-            f'{{\n'
-            f'  "questions": [\n'
-            f'    {{\n'
-            f'      "question": "...",\n'
-            f'      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],\n'
-            f'      "correct_answer": "A. ...",\n'
-            f'      "explanation": "..."\n'
-            f'    }}\n'
-            f'  ]\n'
-            f'}}'
+            f"{prior_context}"
         )
     }]
 
